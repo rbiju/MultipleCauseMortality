@@ -21,12 +21,15 @@ with open('tokenizer.pickle', 'rb') as handle:
 vocabulary_size = len(tokenizer.word_counts) + 1
 seq_len = train_data.shape[1]
 
+train_data = train_data.reshape((np.shape(train_data)[0], np.shape(train_data)[1], 1))
+test_data = test_data.reshape((np.shape(test_data)[0], np.shape(test_data)[1], 1))
+
 model = Sequential()
 
 model.add(LSTM(50, input_shape=(seq_len, 1), return_sequences=True))
 model.add(LSTM(50))
-model.add(Dense(200))
-model.add(Dropout(0.1))
+model.add(Dense(128))
+model.add(Dropout(0.3))
 model.add(PReLU(alpha_initializer=Constant(value=0.25)))
 model.add(Dense(vocabulary_size, activation='softmax'))
 
@@ -34,7 +37,7 @@ model.summary()
 
 opt = keras.optimizers.Adam(learning_rate=0.005)
 model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-history = model.fit(train_data, train_labels, batch_size=10000, epochs=72, validation_data=(test_data, test_labels), verbose=True)
+history = model.fit(train_data, train_labels, batch_size=10000, epochs=150, validation_data=(test_data, test_labels), verbose=True)
 
 #  "Accuracy"
 plt.plot(history.history['accuracy'])

@@ -13,8 +13,10 @@ import os
 filepath = os.getcwd() + '/DIAGNOSES_ICD.csv'
 df = pd.read_csv(filepath, header=0)
 
+textpath = os.getcwd() + '/textfile.txt'
 trainpath = os.getcwd() + '/trainfile.txt'
 testpath = os.getcwd() + '/testfile.txt'
+fText = open(textpath, 'w')
 fTrain = open(trainpath, 'w')
 fTest = open(testpath, 'w')
 
@@ -27,7 +29,7 @@ class MyCorpus:
     """An iterator that yields sentences (lists of str)."""
 
     def __iter__(self):
-        corpus_path = os.getcwd() + '/trainfile.txt'
+        corpus_path = os.getcwd() + '/textfile.txt'
         for line in open(corpus_path):
             yield line.split()
 
@@ -87,15 +89,17 @@ def makeMotherList(dataframe, train_len, threshold):
         f.close()
 
     print('Creating Text Files.\n')
+    createTextFile(fText, patients)
     createTextFile(fTrain, trainPatients)
     createTextFile(fTest, testPatients)
+    cleanFile(textpath)
     cleanFile(trainpath)
     cleanFile(testpath)
 
     # word2vec model training
     print('Training Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=12)
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=100)
 
     w2v_model.save("word2vec.model")
 
@@ -147,7 +151,7 @@ def sequenceToArray(textArray):
     text_labels = np.array(textArray)[:, memConst - 1]
     labelArray = np.array(tokenizer.texts_to_sequences(text_labels))
     dataArray = makeVectorizedArray(text_data)
-    dataArray = dataArray.reshape((np.shape(dataArray)[0], np.shape(dataArray)[1], 1))
+    # dataArray = dataArray.reshape((np.shape(dataArray)[0], np.shape(dataArray)[1], 1))
     return dataArray, labelArray
 
 
