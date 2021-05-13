@@ -11,3 +11,7 @@
 /SPADE_output.txt
 /spmf.jar
 /tokenizer.pickle
+/testfile.txt
+/word_dict.pickle
+/word2vec.model
+/trainfile.txt
