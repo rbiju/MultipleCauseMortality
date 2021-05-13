@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import keras
 from keras import Sequential
-from keras.layers import Dense, LSTM, Embedding, PReLU, Dropout
+from keras.layers import Dense, LSTM, InputLayer, PReLU, Dropout
 from keras.initializers import Constant
 from gensim.models import Word2Vec
 import matplotlib.pyplot as plt
@@ -23,8 +23,7 @@ seq_len = train_data.shape[1]
 
 model = Sequential()
 
-model.add(Embedding(vocabulary_size, 6, input_length=seq_len))
-model.add(LSTM(50, return_sequences=True))
+model.add(LSTM(50, input_shape=(seq_len, 1), return_sequences=True))
 model.add(LSTM(50))
 model.add(Dense(200))
 model.add(Dropout(0.1))

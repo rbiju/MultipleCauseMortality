@@ -95,7 +95,7 @@ def makeMotherList(dataframe, train_len, threshold):
     # word2vec model training
     print('Training Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=100)
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=12)
 
     w2v_model.save("word2vec.model")
 
@@ -147,7 +147,7 @@ def sequenceToArray(textArray):
     text_labels = np.array(textArray)[:, memConst - 1]
     labelArray = np.array(tokenizer.texts_to_sequences(text_labels))
     dataArray = makeVectorizedArray(text_data)
-
+    dataArray = dataArray.reshape((np.shape(dataArray)[0], np.shape(dataArray)[1], 1))
     return dataArray, labelArray
 
 
