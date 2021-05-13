@@ -15,3 +15,7 @@
 /word_dict.pickle
 /word2vec.model
 /trainfile.txt
+/test_data.npy
+/test_labels.npy
+/train_labels.npy
+/train_data.npy

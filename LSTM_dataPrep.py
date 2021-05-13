@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from keras.preprocessing.text import Tokenizer
 import pickle
+import gensim
 from gensim.models import Word2Vec
 import os
 
@@ -12,11 +13,24 @@ import os
 filepath = os.getcwd() + '/DIAGNOSES_ICD.csv'
 df = pd.read_csv(filepath, header=0)
 
+trainpath = os.getcwd() + '/trainfile.txt'
+testpath = os.getcwd() + '/testfile.txt'
+fTrain = open(trainpath, 'w')
+fTest = open(testpath, 'w')
+
 splitRatio = 0.8
 # number of sequences in 'memory' + 1
 memConst = 4
 
-# Word2Vec model trained in LSTM_word2vec.py
+
+class MyCorpus:
+    """An iterator that yields sentences (lists of str)."""
+
+    def __iter__(self):
+        corpus_path = os.getcwd() + '/trainfile.txt'
+        for line in open(corpus_path):
+            yield line.split()
+
 
 def makeICDDictionary(dataframe):
     code_column = dataframe.loc[:, 'ICD9_CODE']
@@ -46,11 +60,46 @@ def makeMotherList(dataframe, train_len, threshold):
     testPatients = shufflePatients[thresholdNdx:]
     testList = []
 
-    # cutting down data to 50%
-    # patients = np.random.choice(patients, 30000, replace=False)
+    # text file creation
+    def npToSentence(npArr):
+        funcSentence = ''.join([str(num) + ' ' for num in npArr])
+        funcSentence = funcSentence.strip()
 
-    # takes in patient dataframe and append sliding sequences of length train_len to mother list
-    # throws out sequence data whose length is < train_len
+        return funcSentence + '\n'
+
+    def createTextFile(f, patientList):
+        for patient in tqdm(patientList):
+            tempdf = df.loc[(df['HADM_ID'] == patient)]
+            code_column = tempdf.loc[:, 'ICD9_CODE']
+            codes = code_column.values
+            sentence = npToSentence(codes)
+            f.write(sentence)
+
+        f.close()
+
+    def cleanFile(path):
+        with open(path, 'r') as f:
+            lines = f.readlines()
+        with open(path, 'w') as f:
+            for line in tqdm(lines):
+                if line.strip("\n") != "nan":
+                    f.write(line.lower())
+        f.close()
+
+    print('Creating Text Files.\n')
+    createTextFile(fTrain, trainPatients)
+    createTextFile(fTest, testPatients)
+    cleanFile(trainpath)
+    cleanFile(testpath)
+
+    # word2vec model training
+    print('Training Word2Vec.\n')
+    sentences = MyCorpus()
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=100)
+
+    w2v_model.save("word2vec.model")
+
+    # sliding sequence creation
     def appendToMotherList(lowerMotherList, lowerDataFrame, HADM_ID, lowerTrain_len):
         code_column = lowerDataFrame.loc[:, 'ICD9_CODE']
         codes = code_column.values
@@ -62,11 +111,12 @@ def makeMotherList(dataframe, train_len, threshold):
             else:
                 print('HADM_ID {} had too few codes in sequence! (Less than {})'.format(HADM_ID, lowerTrain_len))
 
-    def makeSequences(patientArr, list):
+    def makeSequences(patientArr, subList):
         for patient in tqdm(patientArr):
             tempdf = dataframe.loc[(df['HADM_ID'] == patient)]
-            appendToMotherList(list, tempdf, patient, train_len)
+            appendToMotherList(subList, tempdf, patient, train_len)
 
+    print('Making Sequences.\n')
     makeSequences(patients, motherList)
     makeSequences(trainPatients, trainList)
     makeSequences(testPatients, testList)
@@ -108,21 +158,12 @@ tokenizer.fit_on_texts(text_sequences)
 with open('tokenizer.pickle', 'wb') as handle:
     pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-text_data = np.array(text_sequences)[:, :-1]
-text_labels = np.array(text_sequences)[:, memConst-1]
-tokenizedLabels = np.array(tokenizer.texts_to_sequences(text_labels))
-nparray = makeVectorizedArray(text_data)
+trainData, trainLabels = sequenceToArray(train_sequences)
+testData, testLabels = sequenceToArray(test_sequences)
 
-trainData = nparray[mask]
 np.save(os.getcwd() + '/' + 'train_data.npy', trainData)
-trainLabels = tokenizedLabels[mask]
-# trainLabels = to_categorical(trainLabels, num_classes=vocabulary_size)
 np.save(os.getcwd() + '/' + 'train_labels.npy', trainLabels)
-
-testData = nparray[not mask]
 np.save(os.getcwd() + '/' + 'test_data.npy', testData)
-testLabels = tokenizedLabels[not mask]
-# testLabels = to_categorical(testLabels, num_classes=vocabulary_size)
 np.save(os.getcwd() + '/' + 'test_labels.npy', testLabels)
 
 print('Process Complete')
