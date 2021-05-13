@@ -31,6 +31,8 @@ model.add(Dropout(0.1))
 model.add(PReLU(alpha_initializer=Constant(value=0.25)))
 model.add(Dense(vocabulary_size, activation='softmax'))
 
+model.summary()
+
 opt = keras.optimizers.Adam(learning_rate=0.005)
 model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 history = model.fit(train_data, train_labels, batch_size=10000, epochs=72, validation_data=(test_data, test_labels), verbose=True)

@@ -19,8 +19,8 @@ def npToSentence(npArr):
     return funcSentence + '\n'
 
 
-def createTextFile(f, dataframe):
-    for patient in tqdm(dataframe):
+def createTextFile(f, patientList):
+    for patient in tqdm(patientList):
         tempdf = df.loc[(df['HADM_ID'] == patient)]
         code_column = tempdf.loc[:, 'ICD9_CODE']
         codes = code_column.values

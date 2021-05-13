@@ -16,6 +16,7 @@ splitRatio = 0.8
 # number of sequences in 'memory' + 1
 memConst = 4
 
+# Word2Vec model trained in LSTM_word2vec.py
 
 def makeICDDictionary(dataframe):
     code_column = dataframe.loc[:, 'ICD9_CODE']
@@ -33,67 +34,94 @@ def makeICDDictionary(dataframe):
     return seq
 
 
-def makeMotherList(dataframe, train_len):
+def makeMotherList(dataframe, train_len, threshold):
     motherList = []
     patients = df.HADM_ID.unique()
 
-    # cutting down data to 10%
+    shufflePatients = patients
+    thresholdNdx = int(np.size(patients) * threshold)
+    np.random.shuffle(shufflePatients)
+    trainPatients = shufflePatients[:thresholdNdx]
+    trainList = []
+    testPatients = shufflePatients[thresholdNdx:]
+    testList = []
+
+    # cutting down data to 50%
     # patients = np.random.choice(patients, 30000, replace=False)
 
     # takes in patient dataframe and append sliding sequences of length train_len to mother list
     # throws out sequence data whose length is < train_len
-    def appendToMotherList(motherList, dataframe, HADM_ID, train_len):
-        code_column = dataframe.loc[:, 'ICD9_CODE']
+    def appendToMotherList(lowerMotherList, lowerDataFrame, HADM_ID, lowerTrain_len):
+        code_column = lowerDataFrame.loc[:, 'ICD9_CODE']
         codes = code_column.values
         patientCodeList = np.ndarray.tolist(codes)
-        for ndx in range(train_len, len(patientCodeList)):
-            if len(patientCodeList) > train_len:
-                minSeq = patientCodeList[ndx - train_len: ndx]
-                motherList.append(minSeq)
+        for ndx in range(lowerTrain_len, len(patientCodeList)):
+            if len(patientCodeList) > lowerTrain_len:
+                minSeq = patientCodeList[ndx - lowerTrain_len: ndx]
+                lowerMotherList.append(minSeq)
             else:
-                print('HADM_ID {} had too few codes in sequence! (Less than {})'.format(HADM_ID, train_len))
+                print('HADM_ID {} had too few codes in sequence! (Less than {})'.format(HADM_ID, lowerTrain_len))
 
-    print('Making Sequence List.\n')
-    for patient in tqdm(patients):
-        tempdf = dataframe.loc[(df['HADM_ID'] == patient)]
-        appendToMotherList(motherList, tempdf, patient, train_len)
-    print('Sequence List complete.\n')
-    return motherList
+    def makeSequences(patientArr, list):
+        for patient in tqdm(patientArr):
+            tempdf = dataframe.loc[(df['HADM_ID'] == patient)]
+            appendToMotherList(list, tempdf, patient, train_len)
 
+    makeSequences(patients, motherList)
+    makeSequences(trainPatients, trainList)
+    makeSequences(testPatients, testList)
 
-def trainSplit(threshold, n_seq):
-    thresholdNdx = int(np.shape(n_seq)[0] * threshold)
-    train = n_seq[0: thresholdNdx, :]
-    test = n_seq[thresholdNdx:, :]
-
-    return train, test
+    return motherList, trainList, testList
 
 
-text_sequences = makeMotherList(df, memConst)
+def makeVectorizedArray(textArray):
+    w2v_model = Word2Vec.load("word2vec.model")
+    dim = w2v_model.wv.vector_size
+    narray = np.empty((np.shape(textArray)[0], np.shape(textArray)[1] * dim))
+    for i, row in tqdm(enumerate(textArray)):
+        vectorizedRow = np.array([])
+        for j, element in enumerate(row):
+            try:
+                wordvec = w2v_model.wv[element]
+                np.append(vectorizedRow, wordvec)
+                vectorizedRow = np.concatenate((vectorizedRow, wordvec))
+            except KeyError:
+                wordvec = np.zeros(dim)
+                vectorizedRow = np.concatenate((vectorizedRow, wordvec))
+        narray[i] = vectorizedRow
+    return narray
+
+
+def sequenceToArray(textArray):
+    text_data = np.array(textArray)[:, :-1]
+    text_labels = np.array(textArray)[:, memConst - 1]
+    labelArray = np.array(tokenizer.texts_to_sequences(text_labels))
+    dataArray = makeVectorizedArray(text_data)
+
+    return dataArray, labelArray
+
+
+text_sequences, train_sequences, test_sequences = makeMotherList(df, memConst, splitRatio)
 
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(text_sequences)
 with open('tokenizer.pickle', 'wb') as handle:
     pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-sequences = tokenizer.texts_to_sequences(text_sequences)
+text_data = np.array(text_sequences)[:, :-1]
+text_labels = np.array(text_sequences)[:, memConst-1]
+tokenizedLabels = np.array(tokenizer.texts_to_sequences(text_labels))
+nparray = makeVectorizedArray(text_data)
 
-vocabulary_size = len(tokenizer.word_counts) + 1
-n_sequences = np.empty([len(sequences), memConst], dtype='int32')
-for i in range(len(sequences)):
-    n_sequences[i] = sequences[i]
-
-patientTrain, patientTest = trainSplit(splitRatio, n_sequences)
-
-trainData = patientTrain[:, :-1]
+trainData = nparray[mask]
 np.save(os.getcwd() + '/' + 'train_data.npy', trainData)
-trainLabels = patientTrain[:, -1]
+trainLabels = tokenizedLabels[mask]
 # trainLabels = to_categorical(trainLabels, num_classes=vocabulary_size)
 np.save(os.getcwd() + '/' + 'train_labels.npy', trainLabels)
 
-testData = patientTest[:, :-1]
+testData = nparray[not mask]
 np.save(os.getcwd() + '/' + 'test_data.npy', testData)
-testLabels = patientTest[:, -1]
+testLabels = tokenizedLabels[not mask]
 # testLabels = to_categorical(testLabels, num_classes=vocabulary_size)
 np.save(os.getcwd() + '/' + 'test_labels.npy', testLabels)
 
