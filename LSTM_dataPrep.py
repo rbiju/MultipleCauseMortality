@@ -150,7 +150,7 @@ def makeVectorizedArray(textArray):
 def sequenceToArray(textArray):
     text_data = np.array(textArray)[:, :-1]
     text_labels = np.array(textArray)[:, memConst - 1]
-    labelArray = np.array(tokenizer.texts_to_sequences(text_labels))
+    labelArray = makeVectorizedArray(text_labels)
     dataArray = makeVectorizedArray(text_data)
     return dataArray, labelArray
 
