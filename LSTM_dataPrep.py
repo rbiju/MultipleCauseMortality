@@ -22,7 +22,7 @@ fTest = open(testpath, 'w')
 
 splitRatio = 0.8
 # number of sequences in 'memory' + 1
-memConst = 4
+memConst = 3
 
 
 class MyCorpus:
@@ -42,7 +42,7 @@ def makeICDDictionary(dataframe):
     seq = {}
     count = 1
     print('Making Library \n')
-    for code in tqdm(codes):
+    for code in codes:
         if code not in seq:
             seq[code] = count
         count += 1
@@ -83,7 +83,7 @@ def makeMotherList(dataframe, train_len, threshold):
         with open(path, 'r') as f:
             lines = f.readlines()
         with open(path, 'w') as f:
-            for line in tqdm(lines):
+            for line in lines:
                 if line.strip("\n") != "nan":
                     f.write(line.lower())
         f.close()
@@ -108,12 +108,13 @@ def makeMotherList(dataframe, train_len, threshold):
         code_column = lowerDataFrame.loc[:, 'ICD9_CODE']
         codes = code_column.values
         patientCodeList = np.ndarray.tolist(codes)
-        for ndx in range(lowerTrain_len, len(patientCodeList)):
-            if len(patientCodeList) > lowerTrain_len:
+        if len(patientCodeList) >= lowerTrain_len:
+            for ndx in range(lowerTrain_len, len(patientCodeList)):
                 minSeq = patientCodeList[ndx - lowerTrain_len: ndx]
                 lowerMotherList.append(minSeq)
-            else:
-                print('HADM_ID {} had too few codes in sequence! (Less than {})'.format(HADM_ID, lowerTrain_len))
+        elif len(patientCodeList) < lowerTrain_len:
+            print('HADM_ID {} had too few codes ({}) in sequence! (Less than {})'.format(HADM_ID, len(patientCodeList),
+                                                                                         lowerTrain_len))
 
     def makeSequences(patientArr, subList):
         for patient in tqdm(patientArr):
@@ -132,7 +133,7 @@ def makeVectorizedArray(textArray):
     w2v_model = Word2Vec.load("word2vec.model")
     dim = w2v_model.wv.vector_size
     narray = np.empty((np.shape(textArray)[0], np.shape(textArray)[1] * dim))
-    for i, row in tqdm(enumerate(textArray)):
+    for i, row in enumerate(textArray):
         vectorizedRow = np.array([])
         for j, element in enumerate(row):
             try:
@@ -151,7 +152,6 @@ def sequenceToArray(textArray):
     text_labels = np.array(textArray)[:, memConst - 1]
     labelArray = np.array(tokenizer.texts_to_sequences(text_labels))
     dataArray = makeVectorizedArray(text_data)
-    # dataArray = dataArray.reshape((np.shape(dataArray)[0], np.shape(dataArray)[1], 1))
     return dataArray, labelArray
 
 
