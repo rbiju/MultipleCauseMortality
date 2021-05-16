@@ -97,14 +97,15 @@ def makeMotherList(dataframe, train_len, threshold):
     cleanFile(testpath)
 
     # word2vec model training
-    print('Training Word2Vec.\n')
+    print('\nTraining Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, min_count=1, vector_size=100)
-
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=100)
+    w2v_model.init_sims(replace=True)
     w2v_model.save("word2vec.model")
+    print('\nWord2Vec Trained.\n')
 
     # sliding sequence creation
-    def appendToMotherList(lowerMotherList, lowerDataFrame, HADM_ID, lowerTrain_len):
+    def appendToMotherList(lowerMotherList, lowerDataFrame, lowerTrain_len):
         code_column = lowerDataFrame.loc[:, 'ICD9_CODE']
         codes = code_column.values
         patientCodeList = np.ndarray.tolist(codes)
@@ -112,14 +113,16 @@ def makeMotherList(dataframe, train_len, threshold):
             for ndx in range(lowerTrain_len, len(patientCodeList)):
                 minSeq = patientCodeList[ndx - lowerTrain_len: ndx]
                 lowerMotherList.append(minSeq)
+            return 0
         elif len(patientCodeList) < lowerTrain_len:
-            print('HADM_ID {} had too few codes ({}) in sequence! (Less than {})'.format(HADM_ID, len(patientCodeList),
-                                                                                         lowerTrain_len))
+            return 1
 
     def makeSequences(patientArr, subList):
+        rejectCount = 0
         for patient in tqdm(patientArr):
             tempdf = dataframe.loc[(df['HADM_ID'] == patient)]
-            appendToMotherList(subList, tempdf, patient, train_len)
+            rejectCount += appendToMotherList(subList, tempdf, train_len)
+        print('{} sequences were rejected'.format(rejectCount))
 
     print('Making Sequences.\n')
     makeSequences(patients, motherList)
@@ -142,6 +145,7 @@ def makeVectorizedArray(textArray):
                 vectorizedRow = np.concatenate((vectorizedRow, wordvec))
             except KeyError:
                 wordvec = np.zeros(dim)
+                print('{} not recognized'.format(element))
                 vectorizedRow = np.concatenate((vectorizedRow, wordvec))
         narray[i] = vectorizedRow
     return narray
@@ -150,6 +154,7 @@ def makeVectorizedArray(textArray):
 def sequenceToArray(textArray):
     text_data = np.array(textArray)[:, :-1]
     text_labels = np.array(textArray)[:, memConst - 1]
+    text_labels = text_labels.reshape((np.shape(text_labels)[0], 1))
     labelArray = makeVectorizedArray(text_labels)
     dataArray = makeVectorizedArray(text_data)
     return dataArray, labelArray
