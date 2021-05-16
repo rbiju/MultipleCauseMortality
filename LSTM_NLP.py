@@ -17,7 +17,7 @@ test_labels = np.load(os.getcwd() + '/test_labels.npy')
 
 w2v_model = Word2Vec.load("word2vec.model")
 dim = w2v_model.wv.vector_size
-memConst = 2
+memConst = 4
 seq_len = train_data.shape[1]
 
 with open('tokenizer.pickle', 'rb') as handle:

@@ -22,7 +22,7 @@ fTest = open(testpath, 'w')
 
 splitRatio = 0.8
 # number of sequences in 'memory' + 1
-memConst = 3
+memConst = 5
 
 
 class MyCorpus:
