@@ -140,7 +140,7 @@ def makeVectorizedArray(textArray):
         vectorizedRow = np.array([])
         for j, element in enumerate(row):
             try:
-                wordvec = w2v_model.wv[element]
+                wordvec = w2v_model.wv[element.lower()]
                 np.append(vectorizedRow, wordvec)
                 vectorizedRow = np.concatenate((vectorizedRow, wordvec))
             except KeyError:
