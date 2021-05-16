@@ -22,7 +22,7 @@ fTest = open(testpath, 'w')
 
 splitRatio = 0.8
 # number of sequences in 'memory' + 1
-memConst = 3
+memConst = 5
 
 
 class MyCorpus:
@@ -99,7 +99,7 @@ def makeMotherList(dataframe, train_len, threshold):
     # word2vec model training
     print('\nTraining Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=100)
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=2, vector_size=32)
     w2v_model.init_sims(replace=True)
     w2v_model.save("word2vec.model")
     print('\nWord2Vec Trained.\n')
@@ -140,7 +140,7 @@ def makeVectorizedArray(textArray):
         vectorizedRow = np.array([])
         for j, element in enumerate(row):
             try:
-                wordvec = w2v_model.wv[element]
+                wordvec = w2v_model.wv[element.lower()]
                 np.append(vectorizedRow, wordvec)
                 vectorizedRow = np.concatenate((vectorizedRow, wordvec))
             except KeyError:

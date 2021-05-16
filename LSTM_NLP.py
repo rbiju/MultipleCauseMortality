@@ -1,6 +1,7 @@
 import os
 import pickle
 import numpy as np
+import tensorflow as tf
 import keras
 from keras import Sequential
 from keras.layers import Dense, LSTM, PReLU, Dropout
@@ -17,7 +18,7 @@ test_labels = np.load(os.getcwd() + '/test_labels.npy')
 
 w2v_model = Word2Vec.load("word2vec.model")
 dim = w2v_model.wv.vector_size
-memConst = 2
+memConst = 4
 seq_len = train_data.shape[1]
 
 # make data LSTM compatible
@@ -26,18 +27,18 @@ test_data = test_data.reshape((np.shape(test_data)[0], memConst, dim))
 
 model = Sequential()
 
-model.add(LSTM(50, input_shape=(memConst, dim), return_sequences=True))
-model.add(LSTM(50))
+model.add(LSTM(64, input_shape=(memConst, dim), return_sequences=True))
+model.add(LSTM(64))
 model.add(Dense(128))
-model.add(Dropout(0.3))
+model.add(Dropout(0.2))
 model.add(PReLU(alpha_initializer=Constant(value=0.25)))
 model.add(Dense(dim, activation='tanh'))
 
 model.summary()
 
 opt = keras.optimizers.Adam(learning_rate=0.001)
-model.compile(loss='cosine_similarity', optimizer=opt)
-history = model.fit(train_data, train_labels, batch_size=5000, epochs=150,
+model.compile(loss=tf.keras.losses.CosineSimilarity(axis=-1), optimizer=opt)
+history = model.fit(train_data, train_labels, batch_size=5000, epochs=75,
                     validation_data=(test_data, test_labels), verbose=True)
 
 #  "Accuracy"
