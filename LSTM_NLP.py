@@ -20,6 +20,11 @@ dim = w2v_model.wv.vector_size
 memConst = 2
 seq_len = train_data.shape[1]
 
+with open('tokenizer.pickle', 'rb') as handle:
+    tokenizer = pickle.load(handle)
+
+vocabulary_size = len(tokenizer.word_counts) + 1
+
 # make data LSTM compatible
 train_data = train_data.reshape((np.shape(train_data)[0], memConst, dim))
 test_data = test_data.reshape((np.shape(test_data)[0], memConst, dim))
@@ -31,13 +36,13 @@ model.add(LSTM(50))
 model.add(Dense(128))
 model.add(Dropout(0.3))
 model.add(PReLU(alpha_initializer=Constant(value=0.25)))
-model.add(Dense(dim, activation='tanh'))
+model.add(Dense(vocabulary_size, activation='softmax'))
 
 model.summary()
 
 opt = keras.optimizers.Adam(learning_rate=0.001)
-model.compile(loss='cosine_similarity', optimizer=opt)
-history = model.fit(train_data, train_labels, batch_size=5000, epochs=150,
+model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+history = model.fit(train_data, train_labels, batch_size=10000, epochs=150,
                     validation_data=(test_data, test_labels), verbose=True)
 
 #  "Accuracy"
