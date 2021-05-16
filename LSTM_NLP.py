@@ -1,11 +1,9 @@
 import os
-import pickle
 import numpy as np
 import tensorflow as tf
 import keras
 from keras import Sequential
-from keras.layers import Dense, LSTM, PReLU, Dropout
-from keras.initializers import Constant
+from keras.layers import Dense, LSTM, Dropout
 from gensim.models import Word2Vec
 import matplotlib.pyplot as plt
 
@@ -18,7 +16,7 @@ test_labels = np.load(os.getcwd() + '/test_labels.npy')
 
 w2v_model = Word2Vec.load("word2vec.model")
 dim = w2v_model.wv.vector_size
-memConst = 4
+memConst = 3
 seq_len = train_data.shape[1]
 
 # make data LSTM compatible
@@ -29,9 +27,8 @@ model = Sequential()
 
 model.add(LSTM(64, input_shape=(memConst, dim), return_sequences=True))
 model.add(LSTM(64))
-model.add(Dense(128))
-model.add(Dropout(0.2))
-model.add(PReLU(alpha_initializer=Constant(value=0.25)))
+model.add(Dense(128, activation='tanh'))
+model.add(Dropout(0.1))
 model.add(Dense(dim, activation='tanh'))
 
 model.summary()
@@ -42,13 +39,14 @@ history = model.fit(train_data, train_labels, batch_size=5000, epochs=75,
                     validation_data=(test_data, test_labels), verbose=True)
 
 #  "Accuracy"
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['val_accuracy'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
-plt.show()
+# plt.plot(history.history['accuracy'])
+# plt.plot(history.history['val_accuracy'])
+# plt.title('model accuracy')
+# plt.ylabel('accuracy')
+# plt.xlabel('epoch')
+# plt.legend(['train', 'validation'], loc='upper left')
+# plt.show()
+
 # "Loss"
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
