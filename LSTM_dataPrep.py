@@ -99,7 +99,7 @@ def makeMotherList(dataframe, train_len, threshold):
     # word2vec model training
     print('\nTraining Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=12)
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=8)
     w2v_model.init_sims(replace=True)
     w2v_model.save("word2vec.model")
     print('\nWord2Vec Trained.\n')
