@@ -29,7 +29,7 @@ class MyCorpus:
     """An iterator that yields sentences (lists of str)."""
 
     def __iter__(self):
-        corpus_path = os.getcwd() + '/textfile.txt'
+        corpus_path = os.getcwd() + '/trainfile.txt'
         for line in open(corpus_path):
             yield line.split()
 
@@ -99,8 +99,7 @@ def makeMotherList(dataframe, train_len, threshold):
     # word2vec model training
     print('\nTraining Word2Vec.\n')
     sentences = MyCorpus()
-    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=4)
-    w2v_model.init_sims(replace=True)
+    w2v_model = gensim.models.Word2Vec(sentences=sentences, sg=1, min_count=1, vector_size=8)
     w2v_model.save("word2vec.model")
     print('\nWord2Vec Trained.\n')
 
@@ -140,7 +139,7 @@ def makeVectorizedArray(textArray):
         vectorizedRow = np.array([])
         for j, element in enumerate(row):
             try:
-                wordvec = w2v_model.wv[element.lower()]
+                wordvec = w2v_model.wv.get_vector(element.lower(), norm=True)
                 np.append(vectorizedRow, wordvec)
                 vectorizedRow = np.concatenate((vectorizedRow, wordvec))
             except KeyError:

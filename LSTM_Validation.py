@@ -2,28 +2,22 @@ import os
 import keras
 import pickle
 import numpy as np
+from gensim.models import Word2Vec
 from scipy.io import savemat
 
-test_data = np.load(os.getcwd() + '/test_data.npy')
-test_labels = np.load(os.getcwd() + '/test_labels.npy')
+memConst = 3
 model = keras.models.load_model(os.getcwd() + '/MSP_NLP.h5')
+w2v_model = Word2Vec.load("word2vec.model")
+dim = w2v_model.wv.vector_size
 
-with open('tokenizer.pickle', 'rb') as handle:
-    tokenizer = pickle.load(handle)
+test_data = np.load(os.getcwd() + '/test_data.npy')
+test_data = test_data.reshape((np.shape(test_data)[0], memConst, dim))
+test_labels = np.load(os.getcwd() + '/test_labels.npy')
 
-preds = model.predict_classes(test_data)
-test_ints = np.argmax(test_labels, axis=1)
 
-embeddings = model.layers[0].get_weights()[0]
+model_predictions = model.predict(test_data)
 
-word_dict = {}
-for i in range(1, np.shape(embeddings)[0]):
-    word_dict[tokenizer.index_word[i]] = embeddings[i]
-
-with open('word_dict.pickle', 'wb') as handle:
-    pickle.dump(word_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-matdict = {'Predictions': preds, 'Labels': test_ints}
-savemat('machine_predictions.mat', matdict)
-
+rssults_lst = []
+for ndx, row in enumerate(model_predictions):
+    w2v_model.wv.similar_by_vector(row, topn=5, restrict_vocab=None)
 print('done')

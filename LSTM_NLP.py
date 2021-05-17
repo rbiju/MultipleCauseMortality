@@ -25,27 +25,19 @@ test_data = test_data.reshape((np.shape(test_data)[0], memConst, dim))
 
 model = Sequential()
 
-model.add(LSTM(64, input_shape=(memConst, dim), return_sequences=True))
-model.add(LSTM(64))
+model.add(LSTM(32, input_shape=(memConst, dim), return_sequences=True))
+model.add(LSTM(32))
 model.add(Dense(128, activation='tanh'))
 model.add(Dropout(0.1))
+model.add(Dense(128, activation='tanh'))
 model.add(Dense(dim, activation='tanh'))
 
 model.summary()
 
 opt = keras.optimizers.Adam(learning_rate=0.001)
-model.compile(loss=tf.keras.losses.CosineSimilarity(axis=-1), optimizer=opt)
+model.compile(loss='log_cosh', optimizer=opt, metrics=['mse', 'cosine_similarity'])
 history = model.fit(train_data, train_labels, batch_size=5000, epochs=75,
                     validation_data=(test_data, test_labels), verbose=True)
-
-#  "Accuracy"
-# plt.plot(history.history['accuracy'])
-# plt.plot(history.history['val_accuracy'])
-# plt.title('model accuracy')
-# plt.ylabel('accuracy')
-# plt.xlabel('epoch')
-# plt.legend(['train', 'validation'], loc='upper left')
-# plt.show()
 
 # "Loss"
 plt.plot(history.history['loss'])
